@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Wallet">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231D4ED8'/%3E%3Ccircle cx='90' cy='90' r='52' fill='none' stroke='%23FFFFFF' stroke-width='16'/%3E%3C/svg%3E">
+  <title>Wallet</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      background-color: #FFFFFF;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      overscroll-behavior-y: none;
+    }
+
+    @media (min-width: 450px) {
+      body {
+        background-color: #111111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+
+    button {
+      background: none;
+      border: none;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .tap:active {
+      transform: scale(0.97);
+      opacity: 0.85;
+      transition: transform 0.08s ease;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 430px;
+      height: 100dvh;
+      background-color: #FFFFFF;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    @media (min-width: 450px) {
+      .app {
+        max-width: 390px;
+        height: 844px;
+        border-radius: 44px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+      }
+    }
+
+    .prop-bar {
+      background-color: #0A0B0D;
+      color: #9CA3AF;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-align: center;
+      padding: 5px 0;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .prop-bar.hide { display: none; }
+
+    .toast {
+      position: absolute;
+      top: calc(14px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%) translateY(-16px);
+      background: #111827;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.22s ease;
+      z-index: 60;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px 10px 20px;
+      flex-shrink: 0;
+      background: #FFFFFF;
+      z-index: 15;
+    }
+
+    .account-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .top-icons {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      color: #111827;
+    }
+
+    .top-icons button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .red-dot {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 6px;
+      height: 6px;
+      background-color: #E11D48;
+      border-radius: 50%;
+    }
+
+    /* Pull-to-Refresh Container & Grey Circle Spinner */
+    .scroll-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ptr-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      transform: translateY(-20px) scale(0.85);
+    }
+
+    .ptr-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: #F3F4F6;
+      border: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .ptr-spinner {
+      width: 18px;
+      height: 18px;
+      color: #6B7280;
+    }
+
+    .ptr-spinner.spinning {
+      animation: spinCircle 0.75s linear infinite;
+    }
+
+    @keyframes spinCircle {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 24px;
+      background-color: #FFFFFF;
+      position: relative;
+      z-index: 10;
+      will-change: transform;
+      overscroll-behavior-y: contain;
+    }
+    .scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hero {
+      padding: 6px 20px 18px 20px;
+    }
+
+    .balance {
+      font-size: 42px;
+      font-weight: 700;
+      color: #0A0B0D;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .delta-row {
+      margin-top: 4px;
+      font-size: 15px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .delta-up { color: #16A34A; font-weight: 500; }
+    .delta-down { color: #D93025; font-weight: 500; }
+    .delta-label { color: #6B7280; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 0 20px;
+    }
+
+    .action-card {
+      background-color: #F4F5F7;
+      border-radius: 14px;
+      height: 74px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-card span {
+      font-size: 13px;
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .promo {
+      margin: 18px 20px;
+      background-color: #F4F5F7;
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      position: relative;
+    }
+    .promo.hide { display: none; }
+
+    .promo-art {
+      width: 66px;
+      height: 66px;
+      background-color: #DFC6F5;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .promo-body {
+      padding-right: 18px;
+    }
+
+    .promo-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .promo-sub {
+      font-size: 13.5px;
+      line-height: 1.35;
+      color: #6B7280;
+    }
+
+    .promo-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      color: #4B5563;
+      padding: 2px;
+    }
+
+    .summary-list {
+      padding: 4px 20px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      border-bottom: 1px solid #F3F4F6;
+      margin-bottom: 18px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15.5px;
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .summary-pct {
+      color: #6B7280;
+    }
+
+    .apy-pill {
+      background-color: #DCFCE7;
+      color: #15803D;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .summary-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .add-pill {
+      background-color: #F4F5F7;
+      color: #111827;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .dotted-val {
+      font-size: 16px;
+      font-weight: 500;
+      color: #111827;
+      border-bottom: 1.5px dotted #9CA3AF;
+      padding-bottom: 1px;
+    }
+
+    .section-hdr {
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 19px;
+      font-weight: 700;
+      color: #0A0B0D;
+      margin-bottom: 14px;
+    }
+
+    .token-row {
+      width: 100%;
+      padding: 9px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .token-icon-wrap {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+    }
+
+    .token-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    .icon-usdc { background-color: #2775CA; }
+    .icon-eth { background-color: #627EEA; }
+    .icon-sol { background: linear-gradient(135deg, #9945FF, #14F195); font-size: 12px; }
+
+    .chain-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 17px;
+      height: 17px;
+      background-color: #2563EB;
+      border: 2px solid #FFFFFF;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .token-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .token-name {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .token-sub {
+      font-size: 13.5px;
+      color: #6B7280;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .token-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .token-usd {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .token-amt {
+      font-size: 13.5px;
+      color: #6B7280;
+    }
+
+    .bottom-nav {
+      border-top: 1px solid #F3F4F6;
+      background-color: #FFFFFF;
+      padding: 8px 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: end;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 15;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      color: #4B5563;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .nav-item.active {
+      color: #0A0B0D;
+      font-weight: 600;
+    }
+
+    .fab-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #4B5563;
+    }
+
+    .fab {
+      width: 50px;
+      height: 50px;
+      background-color: #1D4ED8;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      margin-top: -24px;
+      margin-bottom: 2px;
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
+    }
+
+    .backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 40;
+    }
+    .backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #FFFFFF;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 20px calc(24px + env(safe-area-inset-bottom)) 20px;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      z-index: 50;
+      max-height: 88%;
+      overflow-y: auto;
+    }
+    .sheet.open {
+      transform: translateY(0);
+    }
+
+    .grabber {
+      width: 38px;
+      height: 4px;
+      background: #D1D5DB;
+      border-radius: 99px;
+      margin: 0 auto 14px auto;
+    }
+
+    .sheet h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .sheet-hint {
+      font-size: 13px;
+      color: #6B7280;
+      margin: 2px 0 14px 0;
+    }
+
+    .preset-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .preset-btn {
+      background: #F3F4F6;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      text-align: center;
+    }
+
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4B5563;
+      margin-bottom: 5px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      font-size: 15px;
+      color: #111827;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: #1D4ED8;
+    }
+
+    .save-btn {
+      width: 100%;
+      background: #1D4ED8;
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 13px;
+      border-radius: 12px;
+      text-align: center;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="prop-bar" id="propBar">GHOST WALLET • FILM PROP SIMULATOR</div>
+  <div class="toast" id="toast">Saved</div>
+
+  <div class="top">
+    <button class="account-btn tap" onclick="openEditor()">
+      <span id="accountName">Bankroll7177</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    </button>
+    <div class="top-icons">
+      <button class="tap" onclick="toast('Prop search disabled')" aria-label="Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7.5"/><line x1="20.5" y1="20.5" x2="16.5" y2="16.5"/></svg>
+      </button>
+      <button class="tap" onclick="toast('No real history')" aria-label="History">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+      </button>
+      <button class="tap" onclick="toast('Address copied')" aria-label="Copy">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+      <button class="tap" onclick="openEditor()" aria-label="Settings">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+        <span class="red-dot"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="scroll-wrapper">
+    <!-- Pull-to-Refresh Grey Circle Spinner -->
+    <div class="ptr-indicator" id="ptrIndicator">
+      <div class="ptr-circle">
+        <svg class="ptr-spinner" id="ptrSpinner" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="#D1D5DB" stroke-width="2.6"/>
+          <path d="M12 3a9 9 0 0 1 9 9" stroke="#6B7280" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="scroll" id="scrollArea">
+      <div class="hero">
+        <div class="balance" id="totalBalance" ondblclick="triggerCameraCue()">$146,338.44</div>
+        <div class="delta-row">
+          <span id="deltaText" class="delta-up">+$14,820.50 (+11.27%)</span>
+          <span class="delta-label">Today</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="action-card tap" onclick="openEditor()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Buy</span>
+        </button>
+        <button class="action-card tap" onclick="triggerCameraCue()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v16m0-16L4 8m4-4l4 4"/><path d="M16 20V4m0 16l4-4m-4 4l-4-4"/></svg>
+          <span>Swap</span>
+        </button>
+        <button class="action-card tap" onclick="toast('Prop Send Simulated')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="8 7 17 7 17 16"/></svg>
+          <span>Send</span>
+        </button>
+        <button class="action-card tap" onclick="toast('Prop Receive Simulated')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="16 17 7 17 7 8"/></svg>
+          <span>Receive</span>
+        </button>
+      </div>
+
+      <div class="promo" id="promoCard">
+        <div class="promo-art">
+          <svg width="42" height="34" viewBox="0 0 46 34" fill="none">
+            <path d="M15.8 3H21.2L30.5 31H24.7L22.8 24.8H13.4L11.5 31H5.8L15.8 3ZM14.9 19.8H21.3L18.1 9.5L14.9 19.8Z" fill="#1F1F1F"/>
+            <path d="M26.5 3H32.2L41.5 31H35.8L26.5 3Z" fill="#1F1F1F"/>
+          </svg>
+        </div>
+        <div class="promo-body">
+          <div class="promo-title">Tokenized Anthropic</div>
+          <div class="promo-sub">RWA now available under the ticker ANT post-IPO</div>
+        </div>
+        <button class="promo-close tap" onclick="document.getElementById('promoCard').classList.add('hide')" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="summary-list">
+        <div class="summary-row">
+          <div class="summary-left">
+            <span>Money</span>
+            <span class="summary-pct" id="cashPct">• 0%</span>
+            <span class="apy-pill">4.4% APY</span>
+          </div>
+          <div class="summary-right">
+            <button class="add-pill tap" onclick="openEditor()">Add</button>
+            <span class="dotted-val" id="cashUsd">$0.00</span>
+          </div>
+        </div>
+        <div class="summary-row">
+          <div class="summary-left">
+            <span>Tokens</span>
+            <span class="summary-pct" id="tokensPct">• 100%</span>
+          </div>
+          <div class="summary-right">
+            <span class="dotted-val" id="tokensUsd">$146,338.44</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-hdr">
+        <span>Tokens</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+
+      <button class="token-row tap" onclick="openEditor()">
+        <div class="token-icon-wrap">
+          <div class="token-icon icon-usdc">
+            <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+              <path d="M16 5C9.925 5 5 9.925 5 16s4.925 11 11 11 11-4.925 11-11S22.075 5 16 5zm0 19.8c-4.86 0-8.8-3.94-8.8-8.8S11.14 7.2 16 7.2s8.8 3.94 8.8 8.8-3.94 8.8-8.8 8.8z" fill="#FFF"/>
+              <path d="M16.9 14.9c-1.5-.4-2-.7-2-1.4 0-.7.6-1.2 1.6-1.2 1 0 1.5.4 1.6 1.1h1.7c-.1-1.3-.9-2.2-2.3-2.5V9.5h-1.6v1.4c-1.4.3-2.4 1.2-2.4 2.6 0 1.6 1.2 2.3 3 2.7 1.6.4 2 .9 2 1.6 0 .8-.7 1.3-1.8 1.3-1.2 0-1.8-.5-1.9-1.3h-1.8c.1 1.5 1.1 2.4 2.7 2.7v1.4h1.6v-1.4c1.5-.3 2.5-1.2 2.5-2.7 0-1.8-1.2-2.4-2.9-2.9z" fill="#FFF"/>
+            </svg>
+          </div>
+          <div class="chain-badge">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="#FFF"><polygon points="12 2 6 12 12 15.5 18 12 12 2"/><polygon points="12 22 6 13.5 12 17 18 13.5 12 22"/></svg>
+          </div>
+        </div>
+        <div class="token-main">
+          <div class="token-name">
+            <span>USDC</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#2563EB"><path d="M12 2l2.4 2.1 3.1-.3.7 3.1 2.7 1.6-1.2 2.9 1.2 2.9-2.7 1.6-.7 3.1-3.1-.3L12 22l-2.4-2.1-3.1.3-.7-3.1-2.7-1.6 1.2-2.9-1.2-2.9 2.7-1.6.7-3.1 3.1.3L12 2z"/><path d="M9 12l2 2 4-4" stroke="#FFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="token-sub">$0.9995 • <span class="delta-up">Get 4.4% APY</span></div>
+        </div>
+        <div class="token-right">
+          <div class="token-usd" id="usdcUsd">$96,338.44</div>
+          <div class="token-amt" id="usdcAmt">96,386.63 USDC</div>
+        </div>
+      </button>
+
+      <button class="token-row tap" onclick="openEditor()">
+        <div class="token-icon-wrap">
+          <div class="token-icon icon-eth">
+            <svg width="20" height="26" viewBox="0 0 256 417" fill="none">
+              <path fill="#FFFFFF" fill-opacity="0.85" d="M127.961 0l-2.795 9.5v275.668l2.795 2.79 127.962-75.638z"/>
+              <path fill="#FFFFFF" d="M127.962 0L0 212.32l127.962 75.639V154.158z"/>
+              <path fill="#FFFFFF" fill-opacity="0.85" d="M127.961 312.187l-1.575 1.92v98.199l1.575 4.6L256 236.587z"/>
+              <path fill="#FFFFFF" d="M127.962 416.905v-104.72L0 236.585z"/>
+            </svg>
+          </div>
+          <div class="chain-badge">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="#FFF"><polygon points="12 2 6 12 12 15.5 18 12 12 2"/><polygon points="12 22 6 13.5 12 17 18 13.5 12 22"/></svg>
+          </div>
+        </div>
+        <div class="token-main">
+          <div class="token-name">
+            <span>Ethereum</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#2563EB"><path d="M12 2l2.4 2.1 3.1-.3.7 3.1 2.7 1.6-1.2 2.9 1.2 2.9-2.7 1.6-.7 3.1-3.1-.3L12 22l-2.4-2.1-3.1.3-.7-3.1-2.7-1.6 1.2-2.9-1.2-2.9 2.7-1.6.7-3.1 3.1.3L12 2z"/><path d="M9 12l2 2 4-4" stroke="#FFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="token-sub">$1,549.77 • <span class="delta-down">-10.56%</span></div>
+        </div>
+        <div class="token-right">
+          <div class="token-usd" id="ethUsd">$50,000.00</div>
+          <div class="token-amt" id="ethAmt">32.2628 ETH</div>
+        </div>
+      </button>
+
+      <button class="token-row tap" id="solRow" style="display:none;" onclick="openEditor()">
+        <div class="token-icon-wrap">
+          <div class="token-icon icon-sol">SOL</div>
+        </div>
+        <div class="token-main">
+          <div class="token-name">
+            <span>Solana</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="#2563EB"><path d="M12 2l2.4 2.1 3.1-.3.7 3.1 2.7 1.6-1.2 2.9 1.2 2.9-2.7 1.6-.7 3.1-3.1-.3L12 22l-2.4-2.1-3.1.3-.7-3.1-2.7-1.6 1.2-2.9-1.2-2.9 2.7-1.6.7-3.1 3.1.3L12 2z"/><path d="M9 12l2 2 4-4" stroke="#FFF" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="token-sub">$165.00 • <span class="delta-up">+6.42%</span></div>
+        </div>
+        <div class="token-right">
+          <div class="token-usd" id="solUsd">$0.00</div>
+          <div class="token-amt" id="solAmt">0 SOL</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <button class="nav-item active tap">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5.5v-6h-5v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-item tap" onclick="toast('Explore tab (Prop)')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+      <span>Explore</span>
+    </button>
+    <div class="fab-wrap">
+      <button class="fab tap" onclick="openEditor()" aria-label="Edit Prop Values">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span>Trade</span>
+    </div>
+    <button class="nav-item tap" onclick="toast('Money tab (Prop)')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.4-.8-1.3-1.3-2.5-1.3-1.5 0-2.5.8-2.5 1.9 0 1.2 1 1.7 2.6 2 1.6.3 2.5.8 2.5 2 0 1.2-1.1 2-2.7 2-1.3 0-2.3-.5-2.7-1.4" stroke-linecap="round"/><line x1="12" y1="6.8" x2="12" y2="17.2" stroke-linecap="round"/></svg>
+      <span>Money</span>
+    </button>
+    <button class="nav-item tap" onclick="toast('Rewards tab (Prop)')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a3 3 0 0 0 3-3h10a3 3 0 0 0 3 3v10a3 3 0 0 0-3 3H7a3 3 0 0 0-3-3V7z"/></svg>
+      <span>Rewards</span>
+    </button>
+  </div>
+
+  <div class="backdrop" id="backdrop" onclick="closeEditor()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grabber"></div>
+    <h2>Prop Director Controls</h2>
+    <div class="sheet-hint">Values persist across browser refreshes. Pull down on the home screen to trigger the refresh spinner.</div>
+
+    <div class="preset-row">
+      <button class="preset-btn tap" onclick="applyPreset('high')">Scene A: $146,338.44</button>
+      <button class="preset-btn tap" onclick="applyPreset('broke')">Scene B: Low ($0.33)</button>
+    </div>
+
+    <label class="toggle-row">
+      <span>Show Top "Simulator" Banner</span>
+      <input type="checkbox" id="inShowBanner" checked>
+    </label>
+
+    <div class="field">
+      <label>Display Handle</label>
+      <input type="text" id="inName" placeholder="Bankroll7177">
+    </div>
+    <div class="field">
+      <label>Money / Cash Balance ($ USD)</label>
+      <input type="number" id="inCash" step="any">
+    </div>
+    <div class="field">
+      <label>USDC Quantity (@ $0.9995)</label>
+      <input type="number" id="inUsdc" step="any">
+    </div>
+    <div class="field">
+      <label>Ethereum (ETH) Quantity (@ $1,549.77)</label>
+      <input type="number" id="inEth" step="any">
+    </div>
+    <div class="field">
+      <label>Solana (SOL) Quantity (@ $165.00)</label>
+      <input type="number" id="inSol" step="any">
+    </div>
+    <div class="field">
+      <label>Today's Delta Label</label>
+      <input type="text" id="inDelta" placeholder="+$14,820.50 (+11.27%)">
+    </div>
+
+    <button class="save-btn tap" onclick="saveEditor()">Apply Scene Values</button>
+  </div>
+</div>
+
+<script>
+  const PRICES = { usdc: 0.9995, eth: 1549.77, sol: 165.00 };
+
+  let state = JSON.parse(localStorage.getItem('ghostWalletProp_v2')) || {
+    name: 'Bankroll7177',
+    cash: 0.00,
+    usdc: 96386.6333,
+    eth: 32.2628519,
+    sol: 0,
+    delta: '+$14,820.50 (+11.27%)',
+    isPositive: true,
+    showBanner: true
+  };
+
+  function fmtUsd(val) {
+    if (val > 0 && val < 0.01) return '<$0.01';
+    return '$' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function render() {
+    const usdcVal = state.usdc * PRICES.usdc;
+    const ethVal = state.eth * PRICES.eth;
+    const solVal = state.sol * PRICES.sol;
+    const tokensTotal = usdcVal + ethVal + solVal;
+    const grandTotal = state.cash + tokensTotal;
+
+    const bannerEl = document.getElementById('propBar');
+    if (state.showBanner === false) {
+      bannerEl.classList.add('hide');
+    } else {
+      bannerEl.classList.remove('hide');
+    }
+
+    document.getElementById('accountName').textContent = state.name;
+    document.getElementById('totalBalance').textContent = fmtUsd(grandTotal);
+
+    const deltaEl = document.getElementById('deltaText');
+    deltaEl.textContent = state.delta;
+    deltaEl.className = state.isPositive ? 'delta-up' : 'delta-down';
+
+    const cashPct = grandTotal > 0 ? Math.round((state.cash / grandTotal) * 100) : 0;
+    const tokensPct = grandTotal > 0 ? (100 - cashPct) : 100;
+
+    document.getElementById('cashPct').textContent = `• ${cashPct}%`;
+    document.getElementById('cashUsd').textContent = fmtUsd(state.cash);
+    document.getElementById('tokensPct').textContent = `• ${tokensPct}%`;
+    document.getElementById('tokensUsd').textContent = fmtUsd(tokensTotal);
+
+    document.getElementById('usdcUsd').textContent = fmtUsd(usdcVal);
+    document.getElementById('usdcAmt').textContent = `${Number(state.usdc).toLocaleString('en-US', { maximumFractionDigits: 4 })} USDC`;
+
+    document.getElementById('ethUsd').textContent = fmtUsd(ethVal);
+    document.getElementById('ethAmt').textContent = (state.eth > 0 && state.eth < 0.00001)
+      ? '<0.00001 ETH'
+      : `${Number(state.eth).toLocaleString('en-US', { maximumFractionDigits: 4 })} ETH`;
+
+    const solRow = document.getElementById('solRow');
+    if (state.sol > 0) {
+      solRow.style.display = 'flex';
+      document.getElementById('solUsd').textContent = fmtUsd(solVal);
+      document.getElementById('solAmt').textContent = `${Number(state.sol).toLocaleString('en-US', { maximumFractionDigits: 4 })} SOL`;
+    } else {
+      solRow.style.display = 'none';
+    }
+
+    localStorage.setItem('ghostWalletProp_v2', JSON.stringify(state));
+  }
+
+  /* Pull-to-Refresh Physics */
+  const scrollArea = document.getElementById('scrollArea');
+  const ptrIndicator = document.getElementById('ptrIndicator');
+  const ptrSpinner = document.getElementById('ptrSpinner');
+
+  let startY = 0;
+  let currentPull = 0;
+  let isPulling = false;
+  let isRefreshing = false;
+  const TRIGGER_DIST = 64;
+
+  scrollArea.addEventListener('touchstart', (e) => {
+    if (isRefreshing || scrollArea.scrollTop > 0) return;
+    startY = e.touches[0].clientY;
+    isPulling = true;
+    scrollArea.style.transition = 'none';
+    ptrIndicator.style.transition = 'none';
+  }, { passive: true });
+
+  scrollArea.addEventListener('touchmove', (e) => {
+    if (!isPulling || isRefreshing) return;
+    if (scrollArea.scrollTop > 0) {
+      isPulling = false;
+      return;
+    }
+    const diff = e.touches[0].clientY - startY;
+    if (diff > 0) {
+      currentPull = Math.min(diff * 0.45, 90);
+      const progress = Math.min(currentPull / TRIGGER_DIST, 1);
+      scrollArea.style.transform = `translateY(${currentPull}px)`;
+      ptrIndicator.style.opacity = progress;
+      ptrIndicator.style.transform = `translateY(${(currentPull - 54) * 0.5}px) scale(${0.85 + 0.15 * progress})`;
+      ptrSpinner.style.transform = `rotate(${currentPull * 4}deg)`;
+    }
+  }, { passive: true });
+
+  scrollArea.addEventListener('touchend', () => {
+    if (!isPulling || isRefreshing) return;
+    isPulling = false;
+
+    if (currentPull >= TRIGGER_DIST) {
+      isRefreshing = true;
+      scrollArea.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      ptrIndicator.style.transition = 'all 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      scrollArea.style.transform = 'translateY(54px)';
+      ptrIndicator.style.opacity = '1';
+      ptrIndicator.style.transform = 'translateY(0) scale(1)';
+      ptrSpinner.classList.add('spinning');
+
+      setTimeout(() => {
+        ptrSpinner.classList.remove('spinning');
+        scrollArea.style.transform = 'translateY(0)';
+        ptrIndicator.style.opacity = '0';
+        ptrIndicator.style.transform = 'translateY(-20px) scale(0.85)';
+        isRefreshing = false;
+        currentPull = 0;
+      }, 1100);
+    } else {
+      scrollArea.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      ptrIndicator.style.transition = 'all 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+      scrollArea.style.transform = 'translateY(0)';
+      ptrIndicator.style.opacity = '0';
+      ptrIndicator.style.transform = 'translateY(-20px) scale(0.85)';
+      currentPull = 0;
+    }
+  });
+
+  function openEditor() {
+    document.getElementById('inShowBanner').checked = state.showBanner !== false;
+    document.getElementById('inName').value = state.name;
+    document.getElementById('inCash').value = state.cash;
+    document.getElementById('inUsdc').value = state.usdc;
+    document.getElementById('inEth').value = state.eth;
+    document.getElementById('inSol').value = state.sol;
+    document.getElementById('inDelta').value = state.delta;
+
+    document.getElementById('backdrop').classList.add('open');
+    document.getElementById('sheet').classList.add('open');
+  }
+
+  function closeEditor() {
+    document.getElementById('backdrop').classList.remove('open');
+    document.getElementById('sheet').classList.remove('open');
+  }
+
+  function saveEditor() {
+    state.showBanner = document.getElementById('inShowBanner').checked;
+    state.name = document.getElementById('inName').value || 'Bankroll7177';
+    state.cash = parseFloat(document.getElementById('inCash').value) || 0;
+    state.usdc = parseFloat(document.getElementById('inUsdc').value) || 0;
+    state.eth = parseFloat(document.getElementById('inEth').value) || 0;
+    state.sol = parseFloat(document.getElementById('inSol').value) || 0;
+    state.delta = document.getElementById('inDelta').value || '$0 (0.00%)';
+    state.isPositive = state.delta.trim().startsWith('+');
+
+    render();
+    closeEditor();
+    toast('Scene updated');
+  }
+
+  function applyPreset(type) {
+    if (type === 'broke') {
+      state = {
+        name: 'Bankroll7177',
+        cash: 0.00,
+        usdc: 0.3218,
+        eth: 0.000005,
+        sol: 0,
+        delta: '$0 (-0.31%)',
+        isPositive: false,
+        showBanner: state.showBanner
+      };
+    } else {
+      state = {
+        name: 'Bankroll7177',
+        cash: 0.00,
+        usdc: 96386.6333,
+        eth: 32.2628519,
+        sol: 0,
+        delta: '+$14,820.50 (+11.27%)',
+        isPositive: true,
+        showBanner: state.showBanner
+      };
+    }
+    openEditor();
+    render();
+    toast('Preset loaded');
+  }
+
+  function triggerCameraCue() {
+    toast('Cue Roll: Incoming +$25,000 USDC...');
+    const startUsdc = state.usdc;
+    const targetUsdc = startUsdc + 25000;
+    const startTime = performance.now();
+    const duration = 1200;
+
+    function step(now) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      state.usdc = +(startUsdc + (targetUsdc - startUsdc) * ease).toFixed(2);
+      state.delta = '+$25,000.00 (+100.0%)';
+      state.isPositive = true;
+      render();
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  let toastTimer;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+  }
+
+  render();
+</script>
+</body>
+</html>
